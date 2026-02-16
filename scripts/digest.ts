@@ -6,9 +6,9 @@ import process from 'node:process';
 // Constants
 // ============================================================================
 
-const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent';
+const GEMINI_API_URL = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-3.0-flash:generateContent';
 const OPENAI_DEFAULT_API_BASE = 'https://api.openai.com/v1';
-const OPENAI_DEFAULT_MODEL = 'gpt-4o-mini';
+const OPENAI_DEFAULT_MODEL = 'gpt-5-mini';
 const FEED_FETCH_TIMEOUT_MS = 15_000;
 const FEED_CONCURRENCY = 10;
 const GEMINI_BATCH_SIZE = 10;
@@ -989,7 +989,7 @@ function generateDigestReport(articles: ScoredArticle[], highlights: string, sta
   // ── Footer ──
   report += `*生成于 ${dateStr} ${now.toISOString().split('T')[1]?.slice(0, 5) || ''} | 扫描 ${stats.successFeeds} 源 → 获取 ${stats.totalArticles} 篇 → 精选 ${articles.length} 篇*\n`;
   report += `*基于 [Hacker News Popularity Contest 2025](https://refactoringenglish.com/tools/hn-popularity/) RSS 源列表，由 [Andrej Karpathy](https://x.com/karpathy) 推荐*\n`;
-  report += `*由「懂点儿AI」制作，欢迎关注同名微信公众号获取更多 AI 实用技巧 💡*\n`;
+  report += `*Powered by [ai-daily-digest](https://github.com/vigorX777/ai-daily-digest)*\n`;
 
   return report;
 }
