@@ -883,7 +883,7 @@ function generateKeywordBarChart(articles: ScoredArticle[]): string {
   const maxVal = sorted[0][1];
 
   let chart = '```mermaid\n';
-  chart += `xychart-beta horizontal\n`;
+  chart += `xychart-beta\n`;
   chart += `    title "高頻關鍵詞"\n`;
   chart += `    x-axis [${labels}]\n`;
   chart += `    y-axis "出現次數" 0 --> ${maxVal + 2}\n`;
