@@ -169,6 +169,22 @@ interface GeminiSummaryResult {
   }>;
 }
 
+interface FeedError {
+  feedName: string;
+  feedUrl: string;
+  message: string;
+}
+
+interface FeedResult {
+  articles: Article[];
+  error?: FeedError;
+}
+
+interface FetchAllResult {
+  articles: Article[];
+  errors: FeedError[];
+}
+
 interface AIClient {
   call(prompt: string): Promise<string>;
 }
@@ -295,11 +311,11 @@ export function parseRSSItems(xml: string): Array<{ title: string; link: string;
 // Feed Fetching
 // ============================================================================
 
-async function fetchFeed(feed: { name: string; xmlUrl: string; htmlUrl: string }): Promise<Article[]> {
+async function fetchFeed(feed: { name: string; xmlUrl: string; htmlUrl: string }): Promise<FeedResult> {
   try {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), FEED_FETCH_TIMEOUT_MS);
-    
+
     const response = await fetch(feed.xmlUrl, {
       signal: controller.signal,
       headers: {
@@ -307,60 +323,70 @@ async function fetchFeed(feed: { name: string; xmlUrl: string; htmlUrl: string }
         'Accept': 'application/rss+xml, application/atom+xml, application/xml, text/xml, */*',
       },
     });
-    
+
     clearTimeout(timeout);
-    
+
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
-    
+
     const xml = await response.text();
     const items = parseRSSItems(xml);
-    
-    return items.map(item => ({
-      title: item.title,
-      link: item.link,
-      pubDate: parseDate(item.pubDate) || new Date(0),
-      description: item.description,
-      sourceName: feed.name,
-      sourceUrl: feed.htmlUrl,
-    }));
+
+    return {
+      articles: items.map(item => ({
+        title: item.title,
+        link: item.link,
+        pubDate: parseDate(item.pubDate) || new Date(0),
+        description: item.description,
+        sourceName: feed.name,
+        sourceUrl: feed.htmlUrl,
+      })),
+    };
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
-    // Only log non-abort errors to reduce noise
-    if (!msg.includes('abort')) {
-      console.warn(`[digest] ✗ ${feed.name}: ${msg}`);
-    } else {
-      console.warn(`[digest] ✗ ${feed.name}: timeout`);
-    }
-    return [];
+    const displayMsg = msg.includes('abort') ? 'timeout' : msg;
+    console.warn(`[digest] ✗ ${feed.name}: ${displayMsg}`);
+    return {
+      articles: [],
+      error: { feedName: feed.name, feedUrl: feed.xmlUrl, message: displayMsg },
+    };
   }
 }
 
-async function fetchAllFeeds(feeds: typeof RSS_FEEDS): Promise<Article[]> {
+async function fetchAllFeeds(feeds: typeof RSS_FEEDS): Promise<FetchAllResult> {
   const allArticles: Article[] = [];
+  const allErrors: FeedError[] = [];
   let successCount = 0;
   let failCount = 0;
-  
+
   for (let i = 0; i < feeds.length; i += FEED_CONCURRENCY) {
     const batch = feeds.slice(i, i + FEED_CONCURRENCY);
     const results = await Promise.allSettled(batch.map(fetchFeed));
-    
+
     for (const result of results) {
-      if (result.status === 'fulfilled' && result.value.length > 0) {
-        allArticles.push(...result.value);
-        successCount++;
+      if (result.status === 'fulfilled') {
+        const { articles, error } = result.value;
+        if (articles.length > 0) {
+          allArticles.push(...articles);
+          successCount++;
+        } else if (error) {
+          allErrors.push(error);
+          failCount++;
+        } else {
+          failCount++;
+        }
       } else {
         failCount++;
       }
     }
-    
+
     const progress = Math.min(i + FEED_CONCURRENCY, feeds.length);
     console.log(`[digest] Progress: ${progress}/${feeds.length} feeds processed (${successCount} ok, ${failCount} failed)`);
   }
-  
+
   console.log(`[digest] Fetched ${allArticles.length} articles from ${successCount} feeds (${failCount} failed)`);
-  return allArticles;
+  return { articles: allArticles, errors: allErrors };
 }
 
 // ============================================================================
@@ -1053,6 +1079,57 @@ function generateDigestReport(articles: ScoredArticle[], highlights: string, sta
 }
 
 // ============================================================================
+// Heptabase Integration
+// ============================================================================
+
+async function saveToHeptabase(reportPath: string): Promise<void> {
+  // 1. Check CLI exists
+  const which = Bun.which('heptabase');
+  if (!which) {
+    console.warn('[digest] Heptabase CLI not found, skipping.');
+    return;
+  }
+
+  // 2. Check auth status
+  const authProc = Bun.spawn(['heptabase', 'auth', 'status'], {
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+  const authOut = await new Response(authProc.stdout).text();
+  const authExit = await authProc.exited;
+
+  if (authExit !== 0) {
+    console.warn('[digest] Heptabase auth invalid (not logged in), skipping.');
+    return;
+  }
+
+  try {
+    const parsed = JSON.parse(authOut) as { hasToken?: boolean; isValid?: boolean };
+    if (!parsed.hasToken || !parsed.isValid) {
+      console.warn('[digest] Heptabase token expired or missing, skipping. Run: heptabase auth login');
+      return;
+    }
+  } catch {
+    // If stdout is not JSON, check exit code was 0 (already verified above)
+  }
+
+  // 3. Save card
+  const content = await readFile(reportPath, 'utf-8');
+  const saveProc = Bun.spawn(['heptabase', 'save', content], {
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+  const exitCode = await saveProc.exited;
+
+  if (exitCode === 0) {
+    console.log('[digest] ✅ Saved digest to Heptabase card');
+  } else {
+    const errText = await new Response(saveProc.stderr).text();
+    console.warn(`[digest] Failed to save to Heptabase: ${errText}`);
+  }
+}
+
+// ============================================================================
 // CLI
 // ============================================================================
 
@@ -1068,6 +1145,7 @@ Options:
   --feeds <n>     Limit number of RSS feeds to fetch (default: all 90)
   --lang <lang>   Summary language: zh or en (default: zh)
   --output <path> Output file path (default: ./digest-YYYYMMDD.md)
+  --heptabase     Save digest to Heptabase as a note card (requires heptabase CLI)
   --help          Show this help
 
 Environment:
@@ -1096,6 +1174,7 @@ async function main(): Promise<void> {
   let feedLimit = 0;
   let lang: 'zh' | 'en' = 'zh';
   let outputPath = '';
+  let heptabaseEnabled = false;
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i]!;
@@ -1109,6 +1188,8 @@ async function main(): Promise<void> {
       lang = args[++i] as 'zh' | 'en';
     } else if (arg === '--output' && args[i + 1]) {
       outputPath = args[++i]!;
+    } else if (arg === '--heptabase') {
+      heptabaseEnabled = true;
     }
   }
   
@@ -1180,8 +1261,8 @@ async function main(): Promise<void> {
     console.log(`[digest] Feed limit: ${feedLimit} (of ${RSS_FEEDS.length} total)`);
   }
   console.log(`[digest] Step 1/5: Fetching ${feeds.length} RSS feeds...`);
-  const allArticles = await fetchAllFeeds(feeds);
-  
+  const { articles: allArticles, errors: feedErrors } = await fetchAllFeeds(feeds);
+
   if (allArticles.length === 0) {
     console.error('[digest] Error: No articles fetched from any feed. Check network connection.');
     process.exit(1);
@@ -1259,12 +1340,32 @@ async function main(): Promise<void> {
   
   await mkdir(dirname(outputPath), { recursive: true });
   await writeFile(outputPath, report);
-  
+
+  // ── Error log ──
+  if (feedErrors.length > 0) {
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const errorLogPath = `${dirname(outputPath)}/digest-${dateStr}-errors.log`;
+    const errorLogContent = feedErrors
+      .map(e => `[${e.feedName}] ${e.feedUrl} — ${e.message}`)
+      .join('\n');
+    await writeFile(errorLogPath, errorLogContent + '\n');
+    console.log(`[digest] ⚠ ${feedErrors.length} feeds failed. Error log: ${errorLogPath}`);
+  }
+
+  // ── Heptabase integration ──
+  if (heptabaseEnabled) {
+    try {
+      await saveToHeptabase(outputPath);
+    } catch (error) {
+      console.warn(`[digest] Heptabase integration error: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
   console.log('');
   console.log(`[digest] ✅ Done!`);
   console.log(`[digest] 📁 Report: ${outputPath}`);
   console.log(`[digest] 📊 Stats: ${successfulSources.size} sources → ${allArticles.length} articles → ${recentArticles.length} recent → ${finalArticles.length} selected`);
-  
+
   if (finalArticles.length > 0) {
     console.log('');
     console.log(`[digest] 🏆 Top 3 Preview:`);

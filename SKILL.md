@@ -118,7 +118,8 @@ npx -y bun ~/.claude/skills/ai-daily-digest/scripts/digest.ts \
   --hours <timeRange> \
   --top-n <topN> \
   --lang <zh|en> \
-  --output ./output/digest-$(date +%Y%m%d).md
+  --output ./output/digest-$(date +%Y%m%d).md \
+  --heptabase  # 可選：自動存入 Heptabase card
 ```
 
 ### Step 2b：儲存設定
@@ -147,6 +148,8 @@ chmod 600 ~/.hn-daily-digest/config.json
 - 報告檔案路徑
 - 簡要摘要：掃描源數、抓取文章數、精選文章數
 - **今日精選 Top 3 預覽**：中文標題 + 一句話摘要
+- **RSS 錯誤 log**：若有 feed 抓取失敗，會產生 `digest-YYYYMMDD-errors.log` 於 output 同目錄
+- **Heptabase 儲存狀態**：若啟用 `--heptabase`，顯示是否成功存入 Heptabase card
 
 **報告結構**（產生的 Markdown 檔案包含以下區塊）：
 1. **今日看點** — AI 歸納的 3-5 句宏觀趨勢總結
@@ -174,6 +177,7 @@ chmod 600 ~/.hn-daily-digest/config.json
 | 限制 RSS 來源數 | `--feeds <n>`（預設抓全部 90 個，測試時可用 `--feeds 3`） |
 | 中文 | `--lang zh` |
 | English | `--lang en` |
+| 存入 Heptabase | `--heptabase`（需已安裝 heptabase CLI 並登入） |
 
 ---
 
@@ -184,6 +188,7 @@ chmod 600 ~/.hn-daily-digest/config.json
 - API Key 可透過環境變數或 `~/.hn-daily-digest/config.json` 設定（env vars 優先）
 - Provider 優先順序：Anthropic Claude → Gemini → OpenAI-compatible（自動降級）
 - 可選：`OPENAI_API_BASE`、`OPENAI_MODEL`（用於 OpenAI 相容介面）
+- 可選：Heptabase CLI（`heptabase auth login`）— 啟用 `--heptabase` 時需要
 - 網路存取（需能存取 RSS 來源和 AI API）
 
 ---
