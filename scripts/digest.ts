@@ -1113,19 +1113,22 @@ async function saveToHeptabase(reportPath: string): Promise<void> {
     // If stdout is not JSON, check exit code was 0 (already verified above)
   }
 
-  // 3. Save card
-  const content = await readFile(reportPath, 'utf-8');
-  const saveProc = Bun.spawn(['heptabase', 'save', content], {
+  // 3. Save card — use shell to expand file content as argument
+  const saveProc = Bun.spawn({
+    cmd: ['sh', '-c', `timeout 30 heptabase save "$(cat '${reportPath}')"`],
     stdout: 'pipe',
     stderr: 'pipe',
   });
+  const saveOut = await new Response(saveProc.stdout).text();
   const exitCode = await saveProc.exited;
 
-  if (exitCode === 0) {
+  if (saveOut.includes('Card created successfully')) {
     console.log('[digest] ✅ Saved digest to Heptabase card');
-  } else {
+  } else if (exitCode !== 0) {
     const errText = await new Response(saveProc.stderr).text();
-    console.warn(`[digest] Failed to save to Heptabase: ${errText}`);
+    console.warn(`[digest] Failed to save to Heptabase: ${errText || saveOut}`);
+  } else {
+    console.log('[digest] ✅ Saved digest to Heptabase card');
   }
 }
 
