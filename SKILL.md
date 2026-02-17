@@ -1,7 +1,6 @@
 ---
 name: digest
 description: "Multi-domain AI-powered RSS digest. Supports multiple profiles (ai, quant, etc.) to fetch domain-specific RSS feeds, score/filter articles with AI, and generate daily digests in Markdown. Use when user mentions 'daily digest', 'RSS digest', 'blog digest', 'AI blogs', 'quant digest', 'tech news summary', or asks to run /digest command. Trigger command: /digest."
-allowed-tools: Read, Write, Bash(mkdir:*), Bash(npx:*), Bash(chmod:*)
 ---
 
 # AI Daily Digest
@@ -43,9 +42,8 @@ allowed-tools: Read, Write, Bash(mkdir:*), Bash(npx:*), Bash(chmod:*)
 設定檔路徑：`~/.hn-daily-digest/config.json`
 
 Agent 在執行前**必須檢查**此檔案是否存在：
-1. 若存在且有 API Key，直接使用已儲存設定自動執行（不詢問）
-2. 若不存在或無 API Key，走互動流程收集參數
-3. 執行完成後儲存目前設定到此檔案，並設定 `chmod 600 ~/.hn-daily-digest/config.json` 保護 API Key
+1. 若存在且有 API Key，直接使用已儲存設定自動執行（不詢問、不重新儲存 config）
+2. 若不存在或無 API Key，走互動流程收集參數，完成後儲存 config 並 `chmod 600`
 
 **設定檔結構**：
 ```json
@@ -130,13 +128,9 @@ Agent 在執行前**必須檢查**此檔案是否存在：
 ### Step 2：執行腳本
 
 腳本會自動從 `~/.hn-daily-digest/config.json` 讀取 API Key，不需要 export 環境變數。
+腳本會自動建立 output 目錄（`mkdir -p`），不需要額外的 mkdir 指令。
 
-**2a.** 建立輸出目錄：
-```bash
-mkdir -p ./output
-```
-
-**2b.** 執行主腳本（單一 Bash 指令，不要與其他指令合併）：
+**自動執行模式只需要一個 Bash 指令**（匹配 `Bash(npx:*)` 權限）：
 ```bash
 npx -y bun ~/.claude/skills/digest/scripts/digest.ts \
   --profile <ai|quant> \
@@ -147,10 +141,13 @@ npx -y bun ~/.claude/skills/digest/scripts/digest.ts \
   --heptabase
 ```
 
-> **注意**：每個 Bash 指令必須獨立執行（不要用 `&&` 串接），以確保匹配 `allowed-tools` 權限模式。若 config.json 中沒有 API Key 但環境變數中有，腳本也會使用環境變數（env vars 優先）。
+> **重要**：自動執行模式下不需要 `mkdir`、`export`、`Write`、`chmod` 等額外操作。所有 API Key 和設定由腳本從 config.json 讀取，output 目錄由腳本自動建立。這確保整個流程只觸發一次已授權的 `Bash(npx:*)` 呼叫，零中斷。
 
-### Step 2c：儲存設定
+### Step 2b：儲存設定（僅限互動模式）
 
+**自動執行模式下跳過此步**（config 未變更，無需重新儲存）。
+
+僅在互動模式（首次設定或重新設定）時執行：
 1. `mkdir -p ~/.hn-daily-digest`
 2. 用 Write 工具寫入 `~/.hn-daily-digest/config.json`：
 ```json
