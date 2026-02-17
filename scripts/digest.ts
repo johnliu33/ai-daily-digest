@@ -384,18 +384,23 @@ async function callOpenAICompatible(
   model: string
 ): Promise<string> {
   const normalizedBase = apiBase.replace(/\/+$/, '');
+  // Models like gpt-5-mini, o1, o3 series don't support temperature
+  const supportsTemperature = !/^(o[0-9]|gpt-5)/.test(model);
+  const body: Record<string, unknown> = {
+    model,
+    messages: [{ role: 'user', content: prompt }],
+  };
+  if (supportsTemperature) {
+    body.temperature = 0.3;
+    body.top_p = 0.8;
+  }
   const response = await fetch(`${normalizedBase}/chat/completions`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({
-      model,
-      messages: [{ role: 'user', content: prompt }],
-      temperature: 0.3,
-      top_p: 0.8,
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!response.ok) {
@@ -1084,14 +1089,18 @@ async function saveToHeptabase(reportPath: string): Promise<void> {
     // If stdout is not JSON, check exit code was 0 (already verified above)
   }
 
-  // 3. Save card — use shell to expand file content as argument
-  const saveProc = Bun.spawn({
-    cmd: ['sh', '-c', `timeout 30 heptabase save "$(cat '${reportPath}')"`],
+  // 3. Save card — read file content and pass as argument
+  const reportContent = await Bun.file(reportPath).text();
+  const saveProc = Bun.spawn(['heptabase', 'save', reportContent], {
     stdout: 'pipe',
     stderr: 'pipe',
   });
+  const timeoutMs = 30_000;
+  const exitCode = await Promise.race([
+    saveProc.exited,
+    new Promise<number>(resolve => setTimeout(() => { saveProc.kill(); resolve(-1); }, timeoutMs)),
+  ]);
   const saveOut = await new Response(saveProc.stdout).text();
-  const exitCode = await saveProc.exited;
 
   if (saveOut.includes('Card created successfully')) {
     console.log('[digest] ✅ Saved digest to Heptabase card');
