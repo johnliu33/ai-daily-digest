@@ -1,5 +1,6 @@
 ---
 name: digest
+allowed-tools: Bash(npx *)
 description: "Multi-domain AI-powered RSS digest. Supports multiple profiles (ai, quant, etc.) to fetch domain-specific RSS feeds, score/filter articles with AI, and generate daily digests in Markdown. Use when user mentions 'daily digest', 'RSS digest', 'blog digest', 'AI blogs', 'quant digest', 'tech news summary', or asks to run /digest command. Trigger command: /digest."
 ---
 
