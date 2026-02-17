@@ -1,0 +1,86 @@
+{
+  "id": "history",
+  "name": "歷史主題每日精選",
+  "description": "古代史、中世紀、近現代、軍事、科技文化等歷史領域的每日精選摘要",
+
+  "feeds": [
+    { "name": "RealClearHistory", "xmlUrl": "https://www.realclearhistory.com/index.xml", "htmlUrl": "https://www.realclearhistory.com" },
+    { "name": "World History Encyclopedia", "xmlUrl": "https://www.worldhistory.org/rss2/?lang=en", "htmlUrl": "https://www.worldhistory.org" },
+    { "name": "HistoryExtra (BBC)", "xmlUrl": "https://www.historyextra.com/feed/", "htmlUrl": "https://www.historyextra.com" },
+    { "name": "Smithsonian History", "xmlUrl": "https://www.smithsonianmag.com/rss/history/", "htmlUrl": "https://www.smithsonianmag.com/history/" },
+    { "name": "Aeon", "xmlUrl": "https://aeon.co/feed.rss", "htmlUrl": "https://aeon.co" },
+
+    { "name": "ACOUP (Bret Devereaux)", "xmlUrl": "https://acoup.blog/feed/", "htmlUrl": "https://acoup.blog" },
+    { "name": "AWOL Ancient World Online", "xmlUrl": "https://ancientworldonline.blogspot.com/feeds/posts/default?alt=rss", "htmlUrl": "https://ancientworldonline.blogspot.com" },
+    { "name": "Antigone Journal", "xmlUrl": "https://antigonejournal.com/feed/", "htmlUrl": "https://antigonejournal.com" },
+
+    { "name": "Medievalists.net", "xmlUrl": "https://www.medievalists.net/feed/", "htmlUrl": "https://www.medievalists.net" },
+    { "name": "Going Medieval", "xmlUrl": "https://going-medieval.com/feed/", "htmlUrl": "https://going-medieval.com" },
+    { "name": "Medieval History Geek", "xmlUrl": "https://medievalhistorygeek.wordpress.com/feed/", "htmlUrl": "https://medievalhistorygeek.wordpress.com" },
+    { "name": "A Corner of Tenth-Century Europe", "xmlUrl": "https://tenthmedieval.wordpress.com/feed/", "htmlUrl": "https://tenthmedieval.wordpress.com" },
+    { "name": "The Public Medievalist", "xmlUrl": "https://publicmedievalist.com/feed/", "htmlUrl": "https://publicmedievalist.com" },
+
+    { "name": "HistoryNet", "xmlUrl": "https://www.historynet.com/feed/", "htmlUrl": "https://www.historynet.com" },
+    { "name": "RealClearDefense", "xmlUrl": "https://www.realcleardefense.com/index.xml", "htmlUrl": "https://www.realcleardefense.com" },
+    { "name": "War on the Rocks", "xmlUrl": "https://warontherocks.com/feed/", "htmlUrl": "https://warontherocks.com" },
+
+    { "name": "The Renaissance Mathematicus", "xmlUrl": "https://thonyc.wordpress.com/feed/", "htmlUrl": "https://thonyc.wordpress.com" },
+{ "name": "JHI Blog", "xmlUrl": "https://www.jhiblog.org/feed/", "htmlUrl": "https://www.jhiblog.org" },
+    { "name": "On History (IHR UK)", "xmlUrl": "https://blog.history.ac.uk/feed/", "htmlUrl": "https://blog.history.ac.uk" },
+    { "name": "Age of Revolutions", "xmlUrl": "https://ageofrevolutions.com/feed/", "htmlUrl": "https://ageofrevolutions.com" },
+    { "name": "Nursing Clio", "xmlUrl": "https://nursingclio.org/feed/", "htmlUrl": "https://nursingclio.org" },
+    { "name": "The Junto", "xmlUrl": "https://earlyamericanists.com/feed/", "htmlUrl": "https://earlyamericanists.com" },
+    { "name": "NOTCHES", "xmlUrl": "https://notchesblog.com/feed/", "htmlUrl": "https://notchesblog.com" },
+
+    { "name": "The History Blog", "xmlUrl": "http://www.thehistoryblog.com/feed", "htmlUrl": "https://www.thehistoryblog.com" },
+    { "name": "Smithsonian Insider", "xmlUrl": "https://insider.si.edu/category/history/feed/", "htmlUrl": "https://insider.si.edu" },
+
+    { "name": "Throughline (NPR)", "xmlUrl": "https://feeds.npr.org/510333/podcast.xml", "htmlUrl": "https://www.npr.org/podcasts/510333/throughline" },
+    { "name": "The Rest Is History", "xmlUrl": "https://feeds.megaphone.fm/GLT4787413333", "htmlUrl": "https://therestishistory.supportingcast.fm" },
+    { "name": "Fall of Civilizations", "xmlUrl": "https://anchor.fm/s/101adcf44/podcast/rss", "htmlUrl": "https://fallofcivilizationspodcast.com" },
+    { "name": "Revolutions (Mike Duncan)", "xmlUrl": "https://revolutionspodcast.libsyn.com/rss", "htmlUrl": "https://thehistoryofrome.typepad.com/revolutions_podcast/" },
+    { "name": "Hardcore History (Dan Carlin)", "xmlUrl": "https://feeds.feedburner.com/dancarlin/history?format=xml", "htmlUrl": "https://www.dancarlin.com/hardcore-history-series/" },
+    { "name": "China History Podcast", "xmlUrl": "https://feeds.libsyn.com/572640/rss", "htmlUrl": "https://chinahistorypodcast.com" },
+    { "name": "History Daily", "xmlUrl": "https://audioboom.com/channels/5162833.rss", "htmlUrl": "https://audioboom.com/channels/5162833-history-daily" }
+  ],
+
+  "categories": {
+    "ancient-classical":     { "emoji": "🏛", "label": "古典世界" },
+    "medieval-early-modern": { "emoji": "⚔️", "label": "中世紀與近世" },
+    "modern-contemporary":   { "emoji": "🏭", "label": "近現代史" },
+    "military-political":    { "emoji": "🎖️", "label": "軍事與政治史" },
+    "science-culture":       { "emoji": "🔬", "label": "科技與文化史" },
+    "other":                 { "emoji": "📝", "label": "其他" }
+  },
+
+  "prompts": {
+    "curatorRole": "你是一個歷史內容策展人，正在為一份面向歷史愛好者的每日精選摘要篩選文章。",
+    "audience": "對歷史研究、歷史敘事、考古發現、文明演進感興趣的讀者的價值",
+    "relevanceRubric": {
+      "score10": "所有歷史愛好者都應該知道的重大發現/突破性研究/里程碑事件",
+      "score7to9": "對大部分歷史愛好者有價值的深度分析或新觀點",
+      "score4to6": "對特定歷史子領域有價值的專題討論",
+      "score1to3": "與歷史主題關聯不大"
+    },
+    "categoryDescriptions": {
+      "ancient-classical": "古埃及、希臘、羅馬、美索不達米亞、古典考古、古代文獻",
+      "medieval-early-modern": "中世紀歐洲、拜占庭、十字軍、文藝復興、宗教改革、大航海時代",
+      "modern-contemporary": "工業革命、帝國主義、世界大戰、冷戰、當代史、社會變遷",
+      "military-political": "戰爭史、軍事策略、政治外交、國際關係、地緣政治",
+      "science-culture": "科學史、技術史、文化史、思想史、藝術史、性別史",
+      "other": "以上都不太適合的"
+    },
+    "keywordInstruction": "用英文，簡短，如 \"Rome\", \"medieval\", \"WWII\", \"archaeology\", \"revolution\", \"empire\"",
+    "summaryRole": "你是一個歷史內容摘要專家。",
+    "summaryDomainHint": "歷史術語、年代、人物、事件名稱或史學觀點",
+    "highlightsDomain": "歷史學圈"
+  },
+
+  "report": {
+    "title": "# 🏛 歷史主題每日精選",
+    "subtitle": "> 來自 {totalFeeds} 個歷史部落格與播客，AI 精選 Top {topN}",
+    "footerLines": [
+      "*Powered by [ai-daily-digest](https://github.com/vigorX777/ai-daily-digest)*"
+    ]
+  }
+}
