@@ -1,6 +1,7 @@
 ---
 name: digest
 description: "Multi-domain AI-powered RSS digest. Supports multiple profiles (ai, quant, etc.) to fetch domain-specific RSS feeds, score/filter articles with AI, and generate daily digests in Markdown. Use when user mentions 'daily digest', 'RSS digest', 'blog digest', 'AI blogs', 'quant digest', 'tech news summary', or asks to run /digest command. Trigger command: /digest."
+allowed-tools: Read, Write, Bash(mkdir:*), Bash(npx:*), Bash(chmod:*)
 ---
 
 # AI Daily Digest
@@ -21,7 +22,7 @@ description: "Multi-domain AI-powered RSS digest. Supports multiple profiles (ai
 
 執行量化金融領域摘要（量化交易、風控、市場微結構等）。
 
-**使用方式**：輸入 `/digest` 或 `/digest <profile>`，Agent 透過互動引導收集參數後執行。
+**使用方式**：輸入 `/digest` 或 `/digest <profile>`。若已有儲存設定則自動執行，否則透過互動引導收集參數。
 
 ---
 
@@ -42,8 +43,8 @@ description: "Multi-domain AI-powered RSS digest. Supports multiple profiles (ai
 設定檔路徑：`~/.hn-daily-digest/config.json`
 
 Agent 在執行前**必須檢查**此檔案是否存在：
-1. 若存在，讀取並解析 JSON
-2. 詢問使用者是否使用已儲存的設定
+1. 若存在且有 API Key，直接使用已儲存設定自動執行（不詢問）
+2. 若不存在或無 API Key，走互動流程收集參數
 3. 執行完成後儲存目前設定到此檔案，並設定 `chmod 600 ~/.hn-daily-digest/config.json` 保護 API Key
 
 **設定檔結構**：
@@ -66,21 +67,19 @@ Agent 在執行前**必須檢查**此檔案是否存在：
 
 ## 互動流程
 
-### Step 0：檢查已儲存設定
+### Step 0：檢查已儲存設定（自動執行模式）
 
-```bash
-cat ~/.hn-daily-digest/config.json 2>/dev/null || echo "NO_CONFIG"
-```
+用 Read 工具讀取 `~/.hn-daily-digest/config.json`。
 
-若設定存在且有 API Key，詢問使用者：
+**■ 若 config 存在 且 至少有一個 API Key（`anthropicApiKey`、`geminiApiKey` 或 `openaiApiKey` 非空）→ 自動執行模式：**
 
-> 偵測到上次使用的設定：
-> - 時間範圍：{timeRange} 小時
-> - 精選數量：{topN} 篇
-> - 輸出語言：{language === 'zh' ? '中文' : 'English'}
-> - Heptabase 輸出：{heptabase ? '啟用' : '停用'}
->
-> 請問要使用上次設定直接執行，還是重新設定？
+- 顯示一行簡訊：`使用已儲存設定執行 digest（profile: {profile}, {timeRange}hr, {topN}篇, {language}）…`
+- 若使用者輸入 `/digest <profile>`（如 `/digest quant`），使用指定的 profile 覆蓋預設值；否則預設 `ai`
+- **不問任何問題**，直接跳到 Step 2 執行腳本
+
+**■ 若 config 不存在 或 沒有任何 API Key → 互動模式：**
+
+走原本的互動流程（Step 1 ~ Step 1c），收集所有必要參數後再執行。
 
 ### Step 1：選擇 Profile 和收集參數
 
@@ -130,18 +129,15 @@ cat ~/.hn-daily-digest/config.json 2>/dev/null || echo "NO_CONFIG"
 
 ### Step 2：執行腳本
 
+腳本會自動從 `~/.hn-daily-digest/config.json` 讀取 API Key，不需要 export 環境變數。
+
+**2a.** 建立輸出目錄：
 ```bash
 mkdir -p ./output
+```
 
-# API keys（優先順序：Anthropic → Gemini → OpenAI-compatible）
-# 也可以在 ~/.hn-daily-digest/config.json 中設定，env vars 優先
-export ANTHROPIC_API_KEY="<anthropic-key>"   # 最高優先
-export GEMINI_API_KEY="<key>"                # 備援
-# 可選：OpenAI 相容備援（DeepSeek/OpenAI 等）
-export OPENAI_API_KEY="<fallback-key>"
-export OPENAI_API_BASE="https://api.deepseek.com/v1"
-export OPENAI_MODEL="deepseek-chat"
-
+**2b.** 執行主腳本（單一 Bash 指令，不要與其他指令合併）：
+```bash
 npx -y bun ~/.claude/skills/digest/scripts/digest.ts \
   --profile <ai|quant> \
   --hours <timeRange> \
@@ -151,11 +147,13 @@ npx -y bun ~/.claude/skills/digest/scripts/digest.ts \
   --heptabase
 ```
 
-### Step 2b：儲存設定
+> **注意**：每個 Bash 指令必須獨立執行（不要用 `&&` 串接），以確保匹配 `allowed-tools` 權限模式。若 config.json 中沒有 API Key 但環境變數中有，腳本也會使用環境變數（env vars 優先）。
 
-```bash
-mkdir -p ~/.hn-daily-digest
-cat > ~/.hn-daily-digest/config.json << 'EOF'
+### Step 2c：儲存設定
+
+1. `mkdir -p ~/.hn-daily-digest`
+2. 用 Write 工具寫入 `~/.hn-daily-digest/config.json`：
+```json
 {
   "anthropicApiKey": "<anthropic-key>",
   "geminiApiKey": "<key>",
@@ -168,9 +166,8 @@ cat > ~/.hn-daily-digest/config.json << 'EOF'
   "heptabase": true,
   "lastUsed": "<ISO timestamp>"
 }
-EOF
-chmod 600 ~/.hn-daily-digest/config.json
 ```
+3. `chmod 600 ~/.hn-daily-digest/config.json`
 
 ### Step 3：結果展示
 
